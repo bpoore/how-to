@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>How-To: Pinball Map API</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="home.html">How-To: Using the Pinball Map API</a>
+          </div>
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="home.html">Home</a></li>
+            <li><a href="getting-started.html">Getting Started</a></li> 
+            <li class='dropdown'>
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Use the API to Improve Your Site
+             <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="current-machines.html">Display Current Machines</a></li>
+                <li><a href="current-scores.html">Display Current High Scores</a><li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Analysis of Data
+              <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="region-by-region.html">Machine Comp by Region</a></li>
+                <li><a href="high-score-analysis.html">High Score Analysis</a><li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <h1>Comparing Machines by Region</h1>
+      <p>Using the data available on the pinball map, a user can determine what machines are availble in other regions that aren't available at home. This could be very useful for someone traveling and wanting to experience machines that are unavailbe in their own region.</p>
+      <p>The code to determine what machines are available in a different region is very similar to the code we've already used several times before with a few twists:</p>
+      <pre class='prettyprint'>  function getMachines(region) {
+          var req = new XMLHttpRequest();
+          req.open("GET", 'http://pinballmap.com/api/v1/region/' + region + '/location_machine_xrefs.json', false);
+          req.send();
+          var data = JSON.parse(req.responseText);
+
+          var machines = []
+          for (machine in data.location_machine_xrefs) {
+            var machineName = data.location_machine_xrefs[machine].machine.name;
+            var machineLocation = data.location_machine_xrefs[machine].location.name
+            machines.push({'name':machineName, 'location':machineLocation});
+          }
+          return machines;
+      }
+
+    var portlandMachines = getMachines('portland');
+    var bayAreaMachines = getMachines('bayarea');
+
+    var notInPortland = [];
+    for (var i=0; i&ltbayAreaMachines.length; i++) {
+      var machineFound = false;
+      for(var j=0; j&ltportlandMachines.length; j++) {
+        if (bayAreaMachines[i].name === portlandMachines[j].name) {
+          machineFound = true;
+        }
+      }
+      if (!machineFound) {
+        notInPortland.push(bayAreaMachines[i]);
+      }
+    }
+      </pre>
+      <p>In the <a href='getting-started.html'>getting started</a> portion of this write up, we determined the various region names. Using that knowledge we are able to fetch all the machines in a given region. In this example, we look at what machines are in the Bay Area, but not in Portland, OR. It would be easy to generalize this code to have a website where a user enters the two zones of interest to get a list of machines at one region and not the other back. For simplicity in this example, we didn't go quite so far with the generalizations. To make the information sent back to the user most useful, the location of the machine is included with the machine name so the potential player can know where to go upon finding a machine they are excited to go check out.</p>
+      <p>Running the above script and appending the first several entries to a table gives us the following:</p>
+      <table class = "table table-striped" id='machinesTable'>
+        <caption>Machines in Bay Area and not Portland</caption>
+          <!--Ran script and downloaded results to present here-->
+          <tr><th>Machine</th><th>Location</th></tr><tr><td>Raven</td><td>Free Gold Watch</td></tr><tr><td>Spin Wheel</td><td>Pacific Pinball Museum</td></tr><tr><td>Operation Thunder</td><td>Pacific Pinball Museum</td></tr><tr><td>Crossword</td><td>Pacific Pinball Museum</td></tr><tr><td>Pro-Football</td><td>Pacific Pinball Museum</td></tr><tr><td>Flying Carpet</td><td>Pacific Pinball Museum</td></tr><tr><td>Black Knight</td><td>Cafe du Nord</td></tr><tr><td>Dolly Parton</td><td>Fireside, The</td></tr><tr><td>Checkpoint</td><td>Free Gold Watch</td></tr><tr><td>Harley-Davidson (Sega)</td><td>Quarter Note, The</td></tr><tr><td>Revenge from Mars</td><td>Silver Creek Sportsplex</td></tr><tr><td>Super Jumbo</td><td>Pacific Pinball Museum</td></tr><tr><td>Show Boat</td><td>Pacific Pinball Museum</td></tr><tr><td>Pixies</td><td>Pacific Pinball Museum</td></tr><tr><td>Kewpie Doll</td><td>Pacific Pinball Museum</td></tr><tr><td>Drop-a-Card</td><td>Pacific Pinball Museum</td></tr><tr><td>Dancing Dolls</td><td>Pacific Pinball Museum</td></tr><tr><td>Apollo</td><td>Pacific Pinball Museum</td></tr><tr><td>Travel Time</td><td>Pacific Pinball Museum</td></tr><tr><td>High Speed</td><td>Pacific Pinball Museum</td></tr><tr><td>Baby Pac-Man</td><td>Pacific Pinball Museum</td></tr><tr><td>Dr. Dude</td><td>Brewcade</td></tr><tr><td>Lethal Weapon 3</td><td>Free Gold Watch</td></tr><tr><td>Millionaire</td><td>Free Gold Watch</td></tr><tr><td>Mr. &amp; Mrs. Pac-Man</td><td>Free Gold Watch</td></tr><tr><td>Punchy the Clown</td><td>Pacific Pinball Museum</td></tr><tr><td>Strange World</td><td>Pacific Pinball Museum</td></tr><tr><td>Knockout</td><td>Pacific Pinball Museum</td></tr><tr><td>Airborne</td><td>Pacific Pinball Museum</td></tr><tr><td>2001</td><td>Pacific Pinball Museum</td></tr><tr><td>Spider-Man Black</td><td>Metreon</td></tr><tr><td>Whoa Nellie! Big Juicy Melons</td><td>Phoenix Games</td></tr>
+      </table>
+      <p>The full list of machines found in the Bay area but not Portland can be seen <a href='bayArea.html'>here</a>.
+      <h1>Wrap Up</h1>
+      <p>Finding games not available in your home town can be useful for finding games you haven't been able to play locally when planning trips! It wouldn't take much more work to make a functioning app to compare region by region what machines are available. In our last analytics task, we will be looking at how to compare all high scores in the pinball map API to find the highest score posted for each machine.</p>
+      <a href="high-score-analysis.html" class="btn btn-primary btn-block" role="button">Next</a>  
+      <br>
+    </div>
+  </body>
+</html>  

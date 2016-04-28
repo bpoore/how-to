@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>How-To: Pinball Map API</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="home.html">How-To: Using the Pinball Map API</a>
+          </div>
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="home.html">Home</a></li>
+            <li><a href="getting-started.html">Getting Started</a></li> 
+            <li class='dropdown'>
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Use the API to Improve Your Site
+             <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="current-machines.html">Display Current Machines</a></li>
+                <li><a href="current-scores.html">Display Current High Scores</a><li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Analysis of Data
+              <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="region-by-region.html">Machine Comp by Region</a></li>
+                <li><a href="high-score-analysis.html">High Score Analysis</a><li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <h1>Using the Pinball Map API to Improve your Website</h1>
+      <h2>Have the Current High Scores for Your Machines on Your Website</h2>
+      <p>It is slightly more complicated, but still straightforward to pull the high scores posted for the machines at your location and add them to your website. This would be a nice feature to promote a long-term 'high-score' challenge, having the current stats directly available on your website. Currently the high score feature of the pinball map isn't used much by users, but instances such as this could promote using it more!</p>
+      <p>To search for high scores for machines at a location, the request URL is http://pinballmap.com/api/v1/machine_score_xrefs/<code>:id</code>.json. After some searching, the id in question is the location machine reference avaialabe from requesting http://pinballmap.com/api/v1/region/:region/location_machine_xrefs.json.<p>
+      <p>Making a machine score object makes it possible to package the data coming from different requests so we can track the name of the machine, high score and initials of the person who got the high score:</p>
+      <pre class='prettyprint'>  function machineScoreObject(machine_name, score, initials) {
+          this.machine_name = machine_name;
+          this.score = score;
+          this.initials = initials;
+        }
+      </pre>
+      <p>The following code instantiates and populates new machine score objects, pushing each object onto an array:</p>
+      <pre class = 'prettyprint'>  var req = new XMLHttpRequest();
+  req.open('GET', 'http://pinballmap.com/api/v1/region/portland/location_machine_xrefs.json', false);
+  req.send();
+  var data = JSON.parse(req.responseText);
+
+  var machines = [];
+  for (machine in data.location_machine_xrefs) { //for each machine in the JSON file
+      //if the machine matches the location ID of interest  
+    if (data.location_machine_xrefs[machine].location_id == '890') { 
+    var name = data.location_machine_xrefs[machine].machine.name; //machine name
+    var id = data.location_machine_xrefs[machine].id; //machine ID
+    var req = new XMLHttpRequest();
+    //request machine score JSON file for machine ID
+    req.open('GET', 'http://pinballmap.com/api/v1/machine_score_xrefs/' + id + '.json', false); 
+    req.send();
+    var reqScore = JSON.parse(req.responseText);
+
+    if(reqScore.machine_scores.length == 0) { //if there's no score recorded for the machine
+      var highScore = 'N/A';
+      initials = 'N/A';
+    } else { 
+      // initialize first machine score in list as high score
+      var highScore = reqScore.machine_scores[0].score; 
+      var initials = reqScore.machine_scores[0].initials 
+      //if there's more than one recorded score, compare scores to get highest
+      for(var i=1; i&ltreqScore.machine_scores.length; i++) { 
+        if (reqScore.machine_scores[i].score > highScore) {
+          highScore = reqScore.machine_scores[i].score;
+          initials = reqScore.machine_scores[i].initials;
+        }
+      }
+    }
+
+    var machineScore = new machineScoreObject(name, highScore, initials); //create new object
+    machines.push(machineScore); //push object onto array
+    }
+  }
+      </pre>
+      <p>With the array of machine score objects, we can now dynamically add the data to our website in the form of a table:</p>
+      <pre class='prettyprint'> var table = document.getElementById('machinesTable');
+
+  var headerRow = document.createElement('tr');
+  var machine = document.createElement('th');
+  machine.textContent = 'Machine';
+  var score = document.createElement('th');
+  score.textContent = 'Score';
+  var initials = document.createElement('th');
+  initials.textContent = 'Initials';
+  headerRow.appendChild(machine);
+  headerRow.appendChild(score);
+  headerRow.appendChild(initials);
+  table.appendChild(headerRow);
+
+  for (var i=0; i&ltmachines.length; i++) {
+   var row = document.createElement('tr');
+   var machineData = document.createElement('td');
+   machineData.textContent = machines[i].machine_name;
+   row.appendChild(machineData);
+   var machineScore = document.createElement('td');
+   machineScore.textContent = machines[i].score;
+   row.appendChild(machineScore);
+   var machineInitials = document.createElement('td');
+   machineInitials.textContent = machines[i].initials;
+   row.appendChild(machineInitials); 
+   table.appendChild(row);
+  }
+
+  document.body.appendChild(table);
+      </pre>
+      <p>An image of the list appended to a page:</p>
+      <img src='machineScores.png' alt='Oops something went wrong'>
+      <p>Unfortunately there are many machines without scores posted in the pinball map API. If a proprietor wants to include this feature on their website, it would be easy for them to update pinballmap.com with the current high scores on their machines so the fields are populated with data. 
+      <h1>Wrap Up</h1>
+      <p>After determining how to fetch the high scores for the machines at a given location, we're now comfortable to do some more in-depth data retrieval and analysis wtih the API.</p>
+      <a href="region-by-region.html" class="btn btn-primary btn-block" role="button">Next</a>
+      <br>
+    </div>
+  </body>
+</html>   

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>How-To: Pinball Map API</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="home.html">How-To: Using the Pinball Map API</a>
+          </div>
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="home.html">Home</a></li>
+            <li><a href="getting-started.html">Getting Started</a></li> 
+            <li class='dropdown'>
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Use the API to Improve Your Site
+             <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="current-machines.html">Display Current Machines</a></li>
+                <li><a href="current-scores.html">Display Current High Scores</a><li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Analysis of Data
+              <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="region-by-region.html">Machine Comp by Region</a></li>
+                <li><a href="high-score-analysis.html">High Score Analysis</a><li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <h1>National High Scores</h1>
+      <p>With some digging into the information avaialble in the API, it's possible to determine the highest scores reported for each machine for all the regions being tracked in the API. This is more of a toy-project idea, but to see the highest of all the high scores for each machine is fun information and was a fun challenge to figure out the code to complete so it's being shared here. Admittedly, there's probably a more elegant way to complete this task, but I was able to get this to work. I initially didn't expect the task to be such an undertaking, but since I was able to figure it out, this is a nice wrap-up of the tutorial as it uses nearly all the tools we've been over so far up until this point.</p>
+      <p>The approach is similar to the approach used to add <a href='current-scores.html'>high scores for machines at individual locations</a>, though rather than determining the scores for each machine at a given location, we fetch all high scores for a region for each region in the pinball map.</p>
+      <pre class='prettyprint'>   function machineScoreObject(location_id, machine_id, region) {
+        this.location_id = location_id;
+        this.machine_id = machine_id;
+        this.region = region;
+    }
+
+    var req = new XMLHttpRequest(); // Get machine name based on machine id
+    req.open('GET', 'http://pinballmap.com/api/v1/machines.json', false);
+    req.send();
+    var regionMachines = JSON.parse(req.responseText);  
+
+    /* Determine the regions to check high scores for */
+    var req = new XMLHttpRequest();
+    req.open('GET', 'http://pinballmap.com/api/v1/regions.json', false);
+    req.send();
+    var data = JSON.parse(req.responseText);
+
+    var regions = [];
+    for (region in data.regions) {
+      regions.push(data.regions[region].name);
+    }
+
+    var machinesWithScores = [];
+    for (var i=0; i&ltregions.length; i++) { //For each region, fetch the machines at locations
+      var req = new XMLHttpRequest();
+      req.open("GET", 'http://pinballmap.com/api/v1/region/' + regions[i] + '/location_machine_xrefs.json', false);
+      req.send();
+      var data = JSON.parse(req.responseText);
+
+      var reqScore = new XMLHttpRequest(); //For each region, fetch the high scores
+      reqScore.open('GET', 'http://pinballmap.com/api/v1/region/' + regions[i] + '/machine_score_xrefs.json', false);
+      reqScore.send();
+      var regionScores = JSON.parse(reqScore.responseText);
+
+      for(machine in data.location_machine_xrefs) { //For each machine at a location
+        if (data.location_machine_xrefs[machine].machine_score_xrefs_count >= 1) { 
+        //Determine if there are high scores posted. If so, create and populate a machineScoreObject
+            var region = regions[i];
+            var location_id = data.location_machine_xrefs[machine].id;
+            var machine_id = data.location_machine_xrefs[machine].machine_id;
+            machineScore = new machineScoreObject(location_id, machine_id, region); 
+           
+            for (machine in regionMachines.machines) {
+              if (regionMachines.machines[machine].id === machineScore.machine_id) {
+                 machineScore.name = regionMachines.machines[machine].name;
+              } 
+            } 
+           
+            for (machine_score_xref in regionScores.machine_score_xrefs) {
+              if (regionScores.machine_score_xrefs[machine_score_xref].location_machine_xref_id === machineScore.location_id) {
+                machineScore.initials = regionScores.machine_score_xrefs[machine_score_xref].initials;
+                machineScore.score = regionScores.machine_score_xrefs[machine_score_xref].score;
+              } 
+            } 
+            machinesWithScores.push(machineScore);
+        }  
+      } 
+    }
+
+    var uniqueMachinesWithScores = []; //Group same machines by machine id
+    for (var i=0; i&ltmachinesWithScores.length; i++) {
+      var machinePresent = false;
+      for (var j=0; j&ltuniqueMachinesWithScores.length; j++) {
+        if (machinesWithScores[i].machine_id === uniqueMachinesWithScores[j].machine_id) {
+          machinePresent = true;
+          if (machinesWithScores[i].score > uniqueMachinesWithScores[j].score) { //If new machine has higher score
+            uniqueMachinesWithScores.pop(uniqueMachinesWithScores[j]);
+            uniqueMachinesWithScores.push(machinesWithScores[i]);
+          }
+        } 
+      }
+      if(!machinePresent) {
+        uniqueMachinesWithScores.push(machinesWithScores[i]);
+      }
+    } 
+      </pre>
+      <p>It takes a few minutes to allow all the requests to finish to get the data generated, so rather than providing a link to a dynamic list, here is a <a href='highScores.html'>link with a table of high scores</a> current as of 3/8/2016. A partial table is can be viewed directly here:</p>
+
+        <!-- downloaded html content after generating -->
+        <table class = "table table-striped" id='machinesTable'>
+        <caption>National High Scores</caption>
+        <tr><th>Machine</th><th>Score</th><th>Initials</th><th>Region</th></tr><tr><td>Iron Man</td><td>22476460</td><td>nc</td><td>dayton</td></tr><tr><td>Monster Bash</td><td>77785000</td><td>JPM MONSTER BASH CHAMP</td><td>boise</td></tr><tr><td>Congo</td><td>77785000</td><td>JPM MONSTERBASH CHAMP</td><td>boise</td></tr><tr><td>Attack from Mars</td><td>10772132780</td><td>JPM</td><td>boise</td></tr><tr><td>The Sopranos</td><td>46939700</td><td>JPM</td><td>boise</td></tr><tr><td>Jacks to Open</td><td>167380</td><td>DBP</td><td>toronto</td></tr><tr><td>The Wizard of Oz (Emerald City LE)</td><td>503484</td><td>JCF</td><td>sandiego</td></tr><tr><td>Attack from Mars</td><td>14519670850</td><td>JRF</td><td>sandiego</td></tr><tr><td>Pirates of the Caribbean</td><td>413931550</td><td>RUS</td><td>sandiego</td></tr><tr><td>Scared Stiff</td><td>111778680</td><td>DCP</td><td>sandiego</td></tr><tr><td>Batman: The Dark Knight</td><td>1000000000</td><td>FART</td><td>michigan-west</td></tr><tr><td>Twilight Zone</td><td>560056030</td><td>Njw</td><td>utah</td></tr><tr><td>The Addams Family</td><td>197247000</td><td>WBK</td><td>charleston</td></tr><tr><td>Medieval Madness (Remake)</td><td>56994890</td><td>WBK</td><td>charleston</td></tr><tr><td>AC/DC (Pro)</td><td>130438400</td><td>DK</td><td>charleston</td></tr><tr><td>Dirty Harry</td><td>4566554</td><td>Tommy</td><td>oceancity</td></tr><tr><td>2001</td><td>6832</td><td>MAS</td><td>reno</td></tr><tr><td>Slick Chick</td><td>1953</td><td>MAS</td><td>reno</td></tr><tr><td>Attack from Mars</td><td>32000000000</td><td>WHO</td><td>reno</td></tr><tr><td>Indiana Jones</td><td>100522320</td><td>DCB</td><td>reno</td></tr><tr><td>Kiss (Stern)</td><td>110518330</td><td>DRJ</td><td>orlando</td></tr><tr><td>The Walking Dead (Pro)</td><td>665251050</td><td>SMK-SMK</td><td>orlando</td></tr></table>         
+      <p>Notice that the results are in order of region checked first unless a higher score from a region checked later took over the originally found score.</p>
+      <h1>Wrap Up</h1>
+      <p>This concludes our tutorial on using the pinball map API. Throughout this guide we've examined nearly all the 'GET' request features one would need to retrieve data for purposes of analytics or having personal/professional websites dynamically updated with the information available in the API.</p>
+      <br>
+      </body>  
+  </div>      
+</html>

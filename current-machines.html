@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>How-To: Pinball Map API</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="navbar navbar-default">
+        <div class="container-fluid">
+          <div class="navbar-header">
+            <a class="navbar-brand" href="home.html">How-To: Using the Pinball Map API</a>
+          </div>
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="home.html">Home</a></li>
+            <li><a href="getting-started.html">Getting Started</a></li> 
+            <li class='dropdown'>
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Use the API to Improve Your Site
+             <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="current-machines.html">Display Current Machines</a></li>
+                <li><a href="current-scores.html">Display Current High Scores</a><li>
+              </ul>
+            </li>
+            <li class="dropdown">
+              <a class="dropdown-toggle" data-toggle="dropdown" href="#">Analysis of Data
+              <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="region-by-region.html">Machine Comp by Region</a></li>
+                <li><a href="high-score-analysis.html">High Score Analysis</a><li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+      <h1>Using the Pinball Map API to Improve your Website</h1>
+      <h2>Keep the Machines at Your Location Up to Date</h2>
+      <p>The pinball map API can be used to automatically update the machines on a location's website. Rather than having to update your page yourself, you or customers that have been to your establishment can add or remove machines on the pinball map which in turn will be reflected on your site. This would be a nice feature to have for a business where the owner is not personally running the website. Rather than calling up who is running their site or letting the machine list being inaccurate, the pinball map will keep things up to date for you!</p>
+      <p>The 'GET' request format for fetching data about the machines at a location requires determining the location's ID:</p>
+      <p>http://pinballmap.com/api/v1/locations/<code>:id</code>/machine_details.json</p>
+      <p>This information can be found on the pinball map or by making a 'GET' request to the API for all the locations in a region to find the location of interest's ID</p>
+      <p>The code to query the API for the Portland region returning an array of name/id object pairs looks like this:</p>
+      <pre class='prettyprint'> var req = new XMLHttpRequest();
+ req.open('GET', 'http://pinballmap.com/api/v1/region/portland/locations.json', false);
+ req.send();
+ var data = JSON.parse(req.responseText);
+
+ name_id = []
+ for (var i=0; i&ltdata.locations.length; i++) {
+   var object = {&quotname&quot:data.locations[i].name, &quotid&quot:data.locations[i].id}
+   name_id.push(object);
+ }
+      </pre>  
+      <p>The data we get back looks like this:</p>
+      <code>
+        <p>...</p>
+        <p>45: Object id: 6350 name: "Bushwhacker Cider"</p>
+        <p>46: Object id: 3014 name: "Buster's Texas-Style Barbecue"</p>
+        <p>47: Object id: 5184 name: "Cascade Bar & Grill"</p>
+        <p>48: Object id: 866 name: "C-Bar"</p> 
+        <p>...</p>
+      </code>
+      <p>Our location of interest in this case is C-Bar, which we see has a location ID of 866. Now we are ready to write our script to allow machines to be dynamically updated on the C-Bar website.
+      <p>This simple javascript script will append to the end of the page a list of the machines currently at a given location, showing the machine name with a link to the Internet Pinball Machine Database as well as the year of the machine:</p>
+      <pre class='prettyprint'> var req = new XMLHttpRequest();
+ req.open('GET', 'http://pinballmap.com/api/v1/locations/866/machine_details.json', false);
+ req.send();
+ var data = JSON.parse(req.responseText);
+
+ var machines = [];
+ var list = document.createElement('ul');
+ for (var i=0; i&ltdata.machines.length; i++) {
+   var name = data.machines[i].name;
+   var site = data.machines[i].ipdb_link;
+   var year = data.machines[i].year;
+   var info = document.createElement(&quotul&quot);
+   info.innerHTML = &quot&lta href=&quot + site +&quot&gt&quot + name +&quot&lt/a&gt&quot + &quot, &quot + year;
+   list.appendChild(info);
+   machines.push(info);
+ } 
+
+ document.body.appendChild(list);
+      </pre>
+      <p>An image of the list appended to a page:</p>
+      <img src='machines.png' alt='Oops something went wrong'>
+      <h1>Wrap Up</h1>
+      <p>The pinball map API allows us to pull data from it so that establishments can have an up-to-date listing of the machines present. With some slightly more complicated code, establishments can also include a current high score ranking for each of the machines on location which may be fun for friendly competition amongst players or even an incentive to win prizes for having the highest score at a given time. Press next to learn how to have high scores included on your site!</p>
+      <a href="current-scores.html" class="btn btn-primary btn-block" role="button">Next</a>
+      <br>
+    </div>
+  </body>
+</html>   
